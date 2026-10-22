@@ -1,0 +1,156 @@
+{
+  "_metadata": {
+    "name": "Stanford Health Care Discharge Summary (Template A, exact)",
+    "version": "3.1-exact",
+    "style": "Exact reproduction of the SHC 'Discharge Summary' Epic shell. Each free-text '***' blank in the shell is a single composed text field (restructure.py stitches the underlying standardized fields into it); sections the shell labels (Hospitalization Details, Lab panels, Meds, Follow Up, Best Practice) stay structured. A catch-all at the end holds anything with no native slot.",
+    "based_on": "Stanford Hospital and Clinics 'Discharge Summary' Epic template (Template contents.pdf)",
+    "content_parity_note": "Native (composed + structured) fields consume a set of standardized paths; the catch-all holds the rest. Consumed ∪ catch-all = the full standardized field set, identical to template_B_exact.",
+    "field_types": "A field may be: mapped (drawn from one standardized path), 'static' (fixed boilerplate), 'composed' (free-text stitched from several standardized paths), or a 'catch_all' section (all remaining fields).",
+    "null_convention": "Use JSON null for any field absent from the source note."
+  },
+
+  "hospitalization_details": {
+    "display_name": "Hospitalization Details",
+    "description": "Encounter and care-team details (labeled fields in the shell).",
+    "fields": {
+      "attending_physician":    { "type": "string", "description": "Attending physician name and credentials", "example": "John Doe, MD" },
+      "attending_contact_info": { "type": "static", "static": "Stanford Hospital page operator at 650-723-4000 and page the attending physician.", "description": "SHC static attending contact boilerplate." },
+      "discharging_service":    { "type": "string", "description": "Discharging service or team", "example": "Internal Medicine" },
+      "admission_date":         { "type": "string", "description": "Admission date", "example": "2024-05-01" },
+      "discharge_date":         { "type": "string", "description": "Discharge date", "example": "2024-05-05" }
+    }
+  },
+
+  "identifier": {
+    "display_name": "Identifier",
+    "description": "Patient identification.",
+    "fields": {
+      "patient_id": { "type": "string", "description": "Patient ID / medical record number", "example": "000000" }
+    }
+  },
+
+  "reason_for_hospitalization": {
+    "display_name": "Reason for Hospitalization",
+    "description": "Free-text '***' blank: chief complaint, admitting diagnosis, and brief HPI.",
+    "fields": {
+      "reason": { "type": "composed", "compose": ["admission_information.chief_complaint", "admission_information.admitting_diagnosis", "admission_information.history_of_present_illness"], "description": "Composed reason-for-hospitalization narrative.", "example": "Shortness of breath. Community-acquired pneumonia. 64M with 3 days of cough and dyspnea." }
+    }
+  },
+
+  "summary_of_hospital_course": {
+    "display_name": "Summary of Hospital Course",
+    "description": "Free-text '***' blank: narrative course and response to treatment.",
+    "fields": {
+      "summary": { "type": "composed", "compose": ["hospital_course.summary", "hospital_course.response_to_treatment"], "description": "Composed hospital-course narrative.", "example": "Admitted for pneumonia, treated with IV antibiotics. Clinically improved with resolution of hypoxia." }
+    }
+  },
+
+  "discharge_plan_by_issue": {
+    "display_name": "Discharge Plan, by Issue",
+    "description": "Free-text '***' blank: final diagnoses, plan by issue, and consultant input.",
+    "fields": {
+      "plan": { "type": "composed", "compose": ["discharge_diagnosis.primary_diagnosis", "discharge_diagnosis.secondary_diagnoses", "hospital_course.key_events", "consultations.consultants"], "description": "Composed problem-based discharge plan.", "example": "Community-acquired pneumonia; acute hypoxic respiratory failure; COPD exacerbation. Pneumonia: IV then oral antibiotics. Pulmonology consulted for effusion." }
+    }
+  },
+
+  "discharge_exam": {
+    "display_name": "Discharge Exam",
+    "description": "Free-text '***' blank: condition, vitals, functional and mental status, pain.",
+    "fields": {
+      "exam": { "type": "composed", "compose": ["discharge_condition.overall_condition", "discharge_condition.vital_signs", "discharge_condition.functional_status", "discharge_condition.mental_status", "discharge_condition.pain_level"], "description": "Composed discharge exam.", "example": "Stable. BP 124/78, HR 72, afebrile, SpO2 96% RA. Ambulating independently. Alert and oriented x3. Pain well controlled." }
+    }
+  },
+
+  "laboratory_studies": {
+    "display_name": "Laboratory Studies",
+    "description": "Labeled lab panels in the shell (CBC, Electrolytes, Glucose, Coagulation, LFTs, Cardiac, Other). Grouped by restructure.py.",
+    "fields": {
+      "laboratory": { "type": "object", "description": "Lab values grouped into SHC panels.", "example": { "WBC (2024-05-05)": "8.1", "Sodium (2024-05-05)": "139" } }
+    }
+  },
+
+  "pending_labs": {
+    "display_name": "Pending Labs",
+    "description": "Tests ordered but not resulted at discharge (labeled slot).",
+    "fields": {
+      "pending": { "type": "array", "description": "Each entry has test, ordered_date, expected_location, action_needed.", "example": [{ "test": "Blood culture", "ordered_date": "2024-05-04", "expected_location": "Primary care", "action_needed": "Review at follow-up" }] }
+    }
+  },
+
+  "imaging": {
+    "display_name": "Imaging",
+    "description": "Free-text '***' blank: imaging, pathology, and other studies.",
+    "fields": {
+      "imaging": { "type": "composed", "compose": ["diagnostic_results.imaging", "diagnostic_results.pathology", "diagnostic_results.other"], "description": "Composed imaging/other-studies text.", "example": "CXR (2024-05-01): Right lower lobe consolidation. EKG: Normal sinus rhythm." }
+    }
+  },
+
+  "procedures": {
+    "display_name": "Procedures",
+    "description": "Free-text '***' blank: procedures performed.",
+    "fields": {
+      "procedures": { "type": "composed", "compose": ["procedures_and_interventions.procedures"], "description": "Composed procedures text.", "example": "2024-05-02 Thoracentesis — Exudative effusion." }
+    }
+  },
+
+  "complications": {
+    "display_name": "Complications",
+    "description": "Complications smartlist ('None' if empty).",
+    "fields": {
+      "complications": { "type": "composed", "compose": ["hospital_course.complications"], "description": "Composed complications text.", "example": "None." }
+    }
+  },
+
+  "discharge_medications": {
+    "display_name": "Discharge Medications",
+    "description": "Medication-reconciliation smartlist (structured).",
+    "fields": {
+      "medications": { "type": "array", "description": "Each entry has name, dose, route, frequency, indication.", "example": [{ "name": "Amoxicillin-clavulanate", "dose": "875 mg", "route": "oral", "frequency": "BID x5d" }] },
+      "started":   { "type": "array", "description": "Newly started medications", "example": ["Amoxicillin-clavulanate 875mg PO BID"] },
+      "stopped":   { "type": "array", "description": "Discontinued medications", "example": [] },
+      "changed":   { "type": "array", "description": "Dose/frequency changes", "example": [] },
+      "continued": { "type": "array", "description": "Home medications continued", "example": ["Lisinopril 10mg daily"] }
+    }
+  },
+
+  "discharge_orders": {
+    "display_name": "Discharge Orders",
+    "description": "Free-text '@DISCHARGEPROC@' slot: activity, diet, wound care, monitoring, equipment, other.",
+    "fields": {
+      "orders": { "type": "composed", "compose": ["discharge_instructions.activity", "discharge_instructions.diet", "discharge_instructions.wound_care", "discharge_instructions.monitoring", "discharge_instructions.equipment", "discharge_instructions.other"], "description": "Composed discharge orders/instructions.", "example": "Activity as tolerated. Regular diet. Return if fever or worsening dyspnea." }
+    }
+  },
+
+  "follow_up": {
+    "display_name": "Follow Up",
+    "description": "Post-discharge appointments and coordination (labeled slots).",
+    "fields": {
+      "appointments":    { "type": "array",  "description": "Each entry has date, time, provider, department, phone.", "example": [{ "date": "2024-05-12", "provider": "Primary Care" }] },
+      "recommendations": { "type": "string", "description": "General follow-up recommendations", "example": "Follow up with PCP in 1 week." }
+    }
+  },
+
+  "best_practice_information": {
+    "display_name": "Best Practice Information",
+    "description": "SHC best-practice block (labeled items + static footers).",
+    "fields": {
+      "cardiac_quality_attestation": { "type": "static", "static": "BEST PRACTICE for patients with AMI or Heart Failure: quality cardiac topics reviewed and documented.", "description": "SHC static cardiac best-practice attestation." },
+      "code_status":                 { "type": "string", "description": "Code status / goals of care if documented", "example": "Full code" },
+      "advance_directives":          { "type": "string", "description": "Proxy, living will, POLST if documented", "example": null },
+      "disposition":                 { "type": "string", "description": "Discharge destination", "example": "Home" },
+      "support_services":            { "type": "string", "description": "Home health, VNA, PT/OT, case management", "example": null },
+      "transportation":              { "type": "string", "description": "How patient left if documented", "example": null },
+      "barriers_to_care":            { "type": "string", "description": "Social determinants or barriers", "example": null },
+      "allergies":                   { "type": "string", "description": "Known allergies and reaction type", "example": "NKDA" },
+      "smoking_advisory":            { "type": "static", "static": "Patient has been advised to quit if currently smoking or to remain tobacco-free if quit within the last 12 months.", "description": "SHC static smoking-cessation advisory." },
+      "referring_physician_portal":  { "type": "static", "static": "Referring physicians can access information about the care provided to their patients at Stanford Hospital and Clinics using a secure, web-based portal called PRISM. Visit http://prism.stanfordmedicine.org for more details and to apply for a user account.", "description": "SHC static PRISM referring-physician footer." }
+    }
+  },
+
+  "additional_clinical_information": {
+    "display_name": "Additional Clinical Information",
+    "description": "Catch-all: note-derived facts with no native SHC slot (demographics beyond MRN, PMH, patient education). Filled by restructure.py so content matches template_B_exact.",
+    "catch_all": true,
+    "fields": {}
+  }
+}

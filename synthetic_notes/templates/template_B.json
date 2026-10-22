@@ -1,0 +1,185 @@
+{
+  "_metadata": {
+    "name": "PAMF Hospitalist Discharge Summary (Template B)",
+    "version": "2.1",
+    "style": "PAMF Hospitalist format — terse and problem-based: diagnoses up top, a one-liner narrative course, labs/imaging/procedures/consults folded into one 'Significant Findings, Studies, Procedures' section, dispo and follow-up before findings, and a below-the-line block (vitals/exam, CURES attestation, MDM statement, PAMF Hospitalist sign-off) not copied into PAMF Epic.",
+    "based_on": "PAMF Hospitalist 'Discharge Summary' Epic template (Template contents (1).pdf)",
+    "content_parity_note": "Captures the SAME note-derived clinical facts as template_A — only section/field NAMING, grouping, ordering, and institution-specific STATIC boilerplate differ. Static boilerplate carries no note-derived clinical content, so it does not break content parity. Do not add or remove note-derived content categories relative to template_A.",
+    "parity_placement_note": "The PAMF shell has no standalone Past Medical History or Patient Education section, but parity requires those note-derived facts to appear in B. PMHx sits just after the Summary (where PAMF's one-liner references it) and patient education/warning signs are folded into Additional Discharge Instructions, so the sections the PDF DOES show stay in PDF order.",
+    "null_convention": "Use JSON null (not 'Not provided') for any field absent from the source note.",
+    "static_convention": "A field with a 'static' key is fixed institutional boilerplate emitted verbatim for every note; it is not drawn from and does not depend on the source note.",
+    "catch_all": "additional_information.clinical_details holds any specialty-specific or uncategorized clinical information so nothing is dropped."
+  },
+
+  "patient": {
+    "display_name": "Patient",
+    "description": "Patient and encounter identification.",
+    "fields": {
+      "patients_name":          { "type": "string", "description": "Patient full name", "example": "Patient Name" },
+      "mrn":                    { "type": "string", "description": "Medical record number", "example": "000000" },
+      "dob":                    { "type": "string", "description": "Date of birth (YYYY-MM-DD)", "example": "1960-01-01" },
+      "age":                    { "type": "string", "description": "Age at admission", "example": "64 years" },
+      "sex":                    { "type": "string", "description": "Patient sex", "example": "Male" },
+      "attending_at_discharge": { "type": "string", "description": "Attending physician at time of discharge", "example": "John Doe, MD" },
+      "discharging_service":    { "type": "string", "description": "Discharging service or team", "example": "Hospitalist" },
+      "resident":               { "type": "string", "description": "Resident/intern involved, if documented", "example": null },
+      "facility":               { "type": "string", "description": "Hospital or facility name", "example": "Stanford Hospital" },
+      "date_of_admission":      { "type": "string", "description": "Date of admission (YYYY-MM-DD)", "example": "2024-05-01" },
+      "date_of_discharge":      { "type": "string", "description": "Date of discharge (YYYY-MM-DD)", "example": "2024-05-05" },
+      "los":                    { "type": "string", "description": "Length of stay", "example": "4 days" }
+    }
+  },
+
+  "reason_for_admission": {
+    "display_name": "Reason for Admission",
+    "description": "Chief complaint and brief history.",
+    "fields": {
+      "chief_complaint":     { "type": "string", "description": "Reason for admission (chief complaint)", "example": "Shortness of breath" },
+      "admitting_diagnosis": { "type": "string", "description": "Diagnosis on admission", "example": "Community-acquired pneumonia" },
+      "brief_hpi":           { "type": "string", "description": "Brief HPI per admission H&P. Keep concise; preserve dates and values.", "example": "64yo M with 3 days of productive cough and dyspnea..." }
+    }
+  },
+
+  "discharge_diagnoses": {
+    "display_name": "Discharge Diagnoses",
+    "description": "Final diagnoses at discharge.",
+    "fields": {
+      "principal": { "type": "string", "description": "Principal diagnosis at discharge", "example": "Community-acquired pneumonia" },
+      "secondary": { "type": "array",  "description": "Secondary diagnoses", "example": ["Acute hypoxic respiratory failure", "COPD exacerbation"] }
+    }
+  },
+
+  "summary_of_hospital_course": {
+    "display_name": "Summary of Hospital Course",
+    "description": "One-liner plus brief problem-based course. Frame as '[age] [sex] with [PMHx], admitted for [reason], found to have [findings]'. Keep concise; avoid repeating the full H&P but preserve clinical specifics.",
+    "fields": {
+      "narrative_summary": { "type": "string", "description": "One-liner narrative (age/sex, PMHx, reason for admission, key findings) plus brief course", "example": "64yo M with HTN/COPD admitted for pneumonia, treated with antibiotics, improved." },
+      "course_by_problem": { "type": "array",  "description": "Course organized by problem", "example": ["Pneumonia: IV then oral antibiotics", "Hypoxia: weaned off O2"] },
+      "response":          { "type": "string", "description": "Response to treatment", "example": "Improved, hypoxia resolved." },
+      "complications":     { "type": "array",  "description": "Complications during the stay. Empty array if none.", "example": [] }
+    }
+  },
+
+  "past_medical_history": {
+    "display_name": "Past Medical History",
+    "description": "PMHx referenced by the summary one-liner (PAMF folds this into the narrative; kept structured here for parity).",
+    "fields": {
+      "medical_conditions": { "type": "string", "description": "Chronic conditions and comorbidities (PMHx)", "example": "Hypertension, COPD" },
+      "surgical_history":   { "type": "string", "description": "Prior surgeries with dates", "example": "Cholecystectomy 2015" },
+      "prior_medications":  { "type": "string", "description": "Home medications prior to admission", "example": "Lisinopril 10mg daily" },
+      "allergies":          { "type": "string", "description": "Allergies and reactions", "example": "NKDA" },
+      "social_history":     { "type": "string", "description": "Smoking, alcohol, drugs, living situation, occupation", "example": "Former smoker, lives with spouse" },
+      "family_history":     { "type": "string", "description": "Relevant family history if documented", "example": null }
+    }
+  },
+
+  "mandatory_hf_ami_documentation": {
+    "display_name": "Mandatory Documentation for Heart Failure or Acute Myocardial Infarction",
+    "description": "PAMF static quality-documentation block for HF/AMI.",
+    "fields": {
+      "quality_measures": { "type": "static", "static": "AMI/HF quality measures documented per the AMI or HF Quality smartset when applicable.", "description": "PAMF static HF/AMI mandatory documentation attestation." }
+    }
+  },
+
+  "disposition": {
+    "display_name": "Dispo",
+    "description": "Discharge destination and support (home vs SNF, etc.).",
+    "fields": {
+      "disposition":        { "type": "string", "description": "Discharge destination (home vs SNF, etc.)", "example": "Home" },
+      "support_services":   { "type": "string", "description": "Home health, VNA, PT/OT, case management", "example": null },
+      "transportation":     { "type": "string", "description": "How patient left if documented", "example": null },
+      "code_status":        { "type": "string", "description": "Code status if documented", "example": "Full code" },
+      "advance_directives": { "type": "string", "description": "Proxy, living will, POLST if documented", "example": null },
+      "barriers_to_care":   { "type": "string", "description": "Social determinants or barriers", "example": null }
+    }
+  },
+
+  "follow_up_plan": {
+    "display_name": "Follow-up Plan/Appointments",
+    "description": "Post-discharge appointments and coordination.",
+    "fields": {
+      "appointments":    { "type": "array",  "description": "Each entry has date, time, provider, department, phone.", "example": [{ "date": "2024-05-12", "time": "10:00 AM", "provider": "Primary Care", "department": "Internal Medicine", "phone": "650-000-0000" }] },
+      "recommendations": { "type": "string", "description": "Follow-up recommendations (e.g., see PCP in 1-2 weeks)", "example": "See PCP in 1 week." }
+    }
+  },
+
+  "significant_findings_studies_procedures": {
+    "display_name": "Significant Findings, Studies, Procedures",
+    "description": "Final labs, imaging, studies, procedures, consults, and pending labs folded into one section (insert FINAL labs, imaging, echo, significant labs).",
+    "fields": {
+      "labs":          { "type": "object", "description": "Significant lab values as labeled key-value pairs with dates", "example": { "WBC (2024-05-05)": "8.1", "Sodium (2024-05-05)": "139 mmol/L", "Creatinine (2024-05-05)": "0.9 mg/dL" } },
+      "imaging":       { "type": "object", "description": "Imaging studies and findings", "example": { "CXR (2024-05-01)": "Right lower lobe consolidation" } },
+      "pathology":     { "type": "object", "description": "Pathology results if applicable", "example": {} },
+      "other_studies": { "type": "object", "description": "EKG, echo, PFTs, microbiology, or other studies", "example": { "EKG": "Normal sinus rhythm" } },
+      "procedures":    { "type": "array",  "description": "Procedures with dates. Each entry has date, description, findings.", "example": [{ "date": "2024-05-02", "description": "Thoracentesis", "findings": "Exudative effusion" }] },
+      "consultants":   { "type": "array",  "description": "Consulting services. Each entry has service, reason, key_recommendations.", "example": [{ "service": "Pulmonology", "reason": "Pleural effusion", "key_recommendations": "Outpatient follow-up" }] },
+      "pending_labs":  { "type": "array",  "description": "Tests ordered but not resulted at discharge. Each entry has test, ordered_date, expected_location, action_needed.", "example": [{ "test": "Blood culture", "ordered_date": "2024-05-04", "expected_location": "Primary care", "action_needed": "Review at follow-up" }] }
+    }
+  },
+
+  "medications_on_discharge": {
+    "display_name": "Medications on Discharge",
+    "description": "Discharge medication regimen with reconciliation.",
+    "fields": {
+      "medications": { "type": "array", "description": "Each entry has name, dose, route, frequency, indication.", "example": [{ "name": "Amoxicillin-clavulanate", "dose": "875 mg", "route": "oral", "frequency": "twice daily x5 days", "indication": "pneumonia" }] },
+      "started":   { "type": "array", "description": "Newly started medications", "example": ["Amoxicillin-clavulanate 875mg PO BID"] },
+      "stopped":   { "type": "array", "description": "Discontinued medications", "example": [] },
+      "changed":   { "type": "array", "description": "Dose/frequency changes", "example": [] },
+      "continued": { "type": "array", "description": "Home medications continued", "example": ["Lisinopril 10mg daily"] }
+    }
+  },
+
+  "additional_discharge_instructions": {
+    "display_name": "Additional Discharge Instructions",
+    "description": "Care instructions, patient education, and warning signs at discharge.",
+    "fields": {
+      "activity":           { "type": "string", "description": "Activity level and restrictions", "example": "Activity as tolerated" },
+      "diet":               { "type": "string", "description": "Dietary recommendations", "example": "Regular diet" },
+      "wound_care":         { "type": "string", "description": "Wound/incision care if applicable", "example": null },
+      "monitoring":         { "type": "string", "description": "What to watch for at home", "example": "Return if fever or worsening dyspnea" },
+      "equipment":          { "type": "string", "description": "Durable medical equipment", "example": null },
+      "other":              { "type": "string", "description": "Other instructions", "example": null },
+      "warning_signs":      { "type": "array",  "description": "Symptoms requiring urgent care", "example": ["Fever >100.4°F", "Worsening shortness of breath"] },
+      "education_provided": { "type": "array",  "description": "Topics reviewed with patient/family", "example": ["Medication schedule", "Smoking cessation"] },
+      "understanding":      { "type": "string", "description": "Patient/family understanding if noted", "example": "Verbalized understanding." }
+    }
+  },
+
+  "condition_and_exam_at_discharge": {
+    "display_name": "Vitals / Exam on Discharge",
+    "description": "Below-the-line documentation (not copied into PAMF Epic): discharge vitals and exam.",
+    "fields": {
+      "do_not_copy_separator": { "type": "static", "static": "——————— do not copy info below this line into PAMF Epic ———————", "description": "PAMF static below-the-line separator." },
+      "vital_signs":       { "type": "string", "description": "Discharge vitals if documented", "example": "BP 124/78, HR 72, RR 16, afebrile, SpO2 96% RA" },
+      "overall_condition": { "type": "string", "description": "Condition at discharge", "example": "Stable" },
+      "functional_status": { "type": "string", "description": "Mobility/ADLs", "example": "Ambulating independently" },
+      "cognitive_status":  { "type": "string", "description": "Cognitive/mental status if documented", "example": "Alert and oriented x3" },
+      "pain_level":        { "type": "string", "description": "Pain status if documented", "example": "Pain well controlled" }
+    }
+  },
+
+  "cures_attestation": {
+    "display_name": "CURES Attestation",
+    "description": "PAMF static controlled-substance database attestation.",
+    "fields": {
+      "attestation": { "type": "static", "static": "The CURES database was reviewed before prescribing any opiates for this patient.", "description": "PAMF static CURES attestation." }
+    }
+  },
+
+  "attending_sign_off": {
+    "display_name": "Attending Sign-off",
+    "description": "PAMF static sign-off and medical-decision-making statement.",
+    "fields": {
+      "signature":               { "type": "static", "static": "PAMF Hospitalist", "description": "PAMF static hospitalist sign-off line." },
+      "medical_decision_making": { "type": "static", "static": "Medical decision making: >50% of the encounter spent counseling patient and family on lab/imaging results, medication changes/monitoring, and discharge plans. Coordinated with RN and case management regarding discharge plans; PAMF Epic updated and PCP notified.", "description": "PAMF static MDM statement." }
+    }
+  },
+
+  "additional_information": {
+    "display_name": "Additional Information",
+    "description": "Catch-all for anything not captured above.",
+    "fields": {
+      "clinical_details": { "type": "object", "description": "Flexible labeled key-value pairs for any specialty-specific or uncategorized clinical information. Add whatever keys are relevant — do not omit information just because it lacks a dedicated field.", "example": { "code_status_details": "Full code, confirmed with patient" } }
+    }
+  }
+}

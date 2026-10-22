@@ -1,0 +1,224 @@
+{
+  "_metadata": {
+    "name": "Standardized Discharge Summary Template",
+    "version": "2.0",
+    "description": "Generalizable discharge summary schema. All sections are optional — use null for fields absent from the source note. Specialty-specific information goes in additional_information.clinical_details as labeled key-value pairs.",
+    "null_convention": "Use JSON null (not the string 'Not provided') for any field absent from the source note.",
+    "joint_commission_required": ["admission_information", "hospital_course", "procedures_and_interventions", "discharge_condition", "discharge_instructions", "discharge_medications"]
+  },
+
+  "patient_demographics": {
+    "display_name": "PATIENT DEMOGRAPHICS",
+    "description": "Basic patient identification and admission details.",
+    "fields": {
+      "name":           { "type": "string",  "description": "Patient full name", "example": "Jane Smith" },
+      "mrn":            { "type": "string",  "description": "Medical record number", "example": "123456" },
+      "dob":            { "type": "string",  "description": "Date of birth (YYYY-MM-DD)", "example": "1978-04-12" },
+      "age":            { "type": "string",  "description": "Patient age at admission", "example": "45 years" },
+      "sex":            { "type": "string",  "description": "Patient sex", "example": "Female" },
+      "admission_date": { "type": "string",  "description": "Date of admission (YYYY-MM-DD)", "example": "2024-03-27" },
+      "discharge_date": { "type": "string",  "description": "Date of discharge (YYYY-MM-DD)", "example": "2024-03-29" },
+      "length_of_stay": { "type": "string",  "description": "Duration of hospitalization", "example": "2 days" }
+    }
+  },
+
+  "hospital_identification": {
+    "display_name": "HOSPITAL AND PROVIDER INFORMATION",
+    "description": "Hospital and care team details.",
+    "fields": {
+      "facility":            { "type": "string", "description": "Hospital or facility name", "example": "Stanford Hospital and Clinics" },
+      "attending_physician": { "type": "string", "description": "Attending physician full name and credentials", "example": "Amer Karam, MD" },
+      "primary_team":        { "type": "string", "description": "Primary care team or service", "example": "Gynecologic Oncology" },
+      "resident_fellow":     { "type": "string", "description": "Resident or fellow involved in care, if documented", "example": "Samantha Kruger, MD PGY-2" }
+    }
+  },
+
+  "admission_information": {
+    "display_name": "REASON FOR ADMISSION",
+    "description": "Chief complaint and clinical context leading to admission.",
+    "fields": {
+      "chief_complaint":             { "type": "string", "description": "Primary reason for admission in patient or clinician terms", "example": "In-patient chemotherapy" },
+      "admitting_diagnosis":         { "type": "string", "description": "Diagnosis on admission", "example": "Stage II malignant mixed trophoblastic tumor" },
+      "history_of_present_illness":  { "type": "string", "description": "Clinical narrative leading to admission. Preserve all dates, lab values, and provider names from source.", "example": "45-year-old female with gestational trophoblastic neoplasia presenting for cycle 1 EMA/CO..." }
+    }
+  },
+
+  "past_medical_history": {
+    "display_name": "PAST MEDICAL HISTORY",
+    "description": "Relevant medical background.",
+    "fields": {
+      "medical_conditions":  { "type": "string", "description": "Chronic conditions and comorbidities", "example": "Type 2 diabetes, hypertension" },
+      "surgical_history":    { "type": "string", "description": "Prior surgeries with dates if available", "example": "Appendectomy 2018, radical hysterectomy 2024-02-02" },
+      "medications_prior":   { "type": "string", "description": "Home medications prior to admission", "example": "Metformin 500mg BID, lisinopril 10mg daily" },
+      "allergies":           { "type": "string", "description": "Known allergies and reaction type", "example": "Penicillin — anaphylaxis" },
+      "social_history":      { "type": "string", "description": "Smoking, alcohol, drugs, living situation, occupation if documented", "example": "Non-smoker, occasional alcohol, lives alone" },
+      "family_history":      { "type": "string", "description": "Relevant family history if documented", "example": "Mother with breast cancer" }
+    }
+  },
+
+  "hospital_course": {
+    "display_name": "HOSPITAL COURSE",
+    "description": "What happened during hospitalization. Preserve all clinical detail — do not summarize.",
+    "fields": {
+      "summary":                { "type": "string", "description": "1-3 sentence high-level summary of the admission", "example": "Patient admitted for cycle 1 EMA/CO chemotherapy. Tolerated well. Discharged home in stable condition." },
+      "key_events":             { "type": "array",  "description": "Chronological list of significant clinical events, decisions, or findings during the stay", "example": ["Admitted 3/27 for C1 EMA/CO", "Received Leucovorin post-treatment", "Nausea controlled with oral antiemetics", "No acute events"] },
+      "complications":          { "type": "array",  "description": "Complications that arose during hospitalization. Use empty array if none.", "example": [] },
+      "response_to_treatment":  { "type": "string", "description": "How the patient responded to the primary treatment or intervention", "example": "Tolerated chemotherapy well with nausea controlled on oral medications." }
+    }
+  },
+
+  "procedures_and_interventions": {
+    "display_name": "PROCEDURES AND INTERVENTIONS",
+    "description": "All procedures performed during this admission.",
+    "fields": {
+      "procedures": {
+        "type": "array",
+        "description": "List of procedures. Each entry is an object with date, description, and findings.",
+        "example": [
+          { "date": "2024-03-27 to 2024-03-29", "description": "Inpatient EMA/CO chemotherapy", "findings": null }
+        ]
+      }
+    }
+  },
+
+  "diagnostic_results": {
+    "display_name": "DIAGNOSTIC STUDIES",
+    "description": "Significant test results from this admission. Include dates and values exactly as documented.",
+    "fields": {
+      "laboratory": { "type": "object", "description": "Key lab values as labeled key-value pairs with dates", "example": { "Sodium (2024-03-29)": "139 mmol/L", "Potassium (2024-03-29)": "4.3 mmol/L" } },
+      "imaging":    { "type": "object", "description": "Imaging studies and key findings", "example": { "PET/CT (2024-02-01)": "No evidence of metastatic disease" } },
+      "pathology":  { "type": "object", "description": "Pathology results if applicable", "example": { "Cervical biopsy (2024-02-02)": "Trophoblastic tumor with choriocarcinoma component" } },
+      "other":      { "type": "object", "description": "EKG, echo, PFTs, microbiology, or any other studies", "example": { "EKG": "Normal sinus rhythm" } }
+    }
+  },
+
+  "consultations": {
+    "display_name": "CONSULTATIONS",
+    "description": "Specialist services involved during this admission.",
+    "fields": {
+      "consultants": {
+        "type": "array",
+        "description": "List of consulting services. Each entry has service, reason, and key_recommendations.",
+        "example": [
+          { "service": "Infectious Disease", "reason": "History of positive Quantiferon testing", "key_recommendations": "Outpatient follow-up arranged" }
+        ]
+      }
+    }
+  },
+
+  "discharge_diagnosis": {
+    "display_name": "DISCHARGE DIAGNOSIS",
+    "description": "Final diagnoses at time of discharge.",
+    "fields": {
+      "primary_diagnosis":    { "type": "string", "description": "Principal diagnosis", "example": "Stage II malignant mixed trophoblastic tumor with choriocarcinoma and epithelioid trophoblastic tumor" },
+      "secondary_diagnoses":  { "type": "array",  "description": "Additional active diagnoses at discharge", "example": ["Chronic anemia due to malignancy", "History of positive Quantiferon testing"] }
+    }
+  },
+
+  "discharge_condition": {
+    "display_name": "CONDITION AT DISCHARGE",
+    "description": "Patient status at time of discharge.",
+    "fields": {
+      "overall_condition":  { "type": "string", "description": "General condition descriptor", "example": "Stable" },
+      "vital_signs":        { "type": "string", "description": "Discharge vital signs if documented", "example": "BP 118/72, HR 78, afebrile" },
+      "functional_status":  { "type": "string", "description": "Mobility and activities of daily living", "example": "Ambulating independently, tolerating regular diet, voiding spontaneously" },
+      "pain_level":         { "type": "string", "description": "Pain status at discharge if documented", "example": "Pain well controlled on oral medications" },
+      "mental_status":      { "type": "string", "description": "Cognitive or mental status if documented", "example": null }
+    }
+  },
+
+  "discharge_medications": {
+    "display_name": "DISCHARGE MEDICATIONS",
+    "description": "Complete medication regimen at discharge with reconciliation summary.",
+    "fields": {
+      "medications": {
+        "type": "array",
+        "description": "Full medication list. Each entry has name, dose, route, frequency, indication, quantity, refills.",
+        "example": [
+          { "name": "Leucovorin (Wellcovorin)", "dose": "15 mg", "route": "oral", "frequency": "every 12 hours x2 doses", "indication": "chemotherapy support", "quantity": "3 tablets", "refills": 0 }
+        ]
+      },
+      "started":   { "type": "array",  "description": "Medications newly started during this admission", "example": ["Leucovorin 15mg oral q12h x2 doses"] },
+      "stopped":   { "type": "array",  "description": "Medications discontinued during this admission", "example": [] },
+      "changed":   { "type": "array",  "description": "Medications with dose or frequency changes", "example": [] },
+      "continued": { "type": "array",  "description": "Medications continued unchanged from home regimen", "example": ["Docusate 100mg oral daily", "Lorazepam 0.5mg oral q4h PRN"] }
+    }
+  },
+
+  "pending_results": {
+    "display_name": "PENDING RESULTS AT DISCHARGE",
+    "description": "Tests or studies ordered but not resulted at time of discharge. Important for follow-up safety.",
+    "fields": {
+      "pending": {
+        "type": "array",
+        "description": "Each entry has test, ordered_date, expected_location (where results will go), and action_needed.",
+        "example": [
+          { "test": "Quantiferon TB Gold", "ordered_date": null, "expected_location": "Infectious Disease clinic", "action_needed": "Review at outpatient ID follow-up" }
+        ]
+      }
+    }
+  },
+
+  "discharge_instructions": {
+    "display_name": "DISCHARGE INSTRUCTIONS",
+    "description": "Patient care instructions provided at discharge.",
+    "fields": {
+      "activity":     { "type": "string", "description": "Activity level and restrictions", "example": "Ambulate as tolerated. Avoid driving during first two treatment visits." },
+      "diet":         { "type": "string", "description": "Dietary recommendations", "example": "Regular diet. Drink 2-3L fluids daily. Avoid raw fish, eggs, meat." },
+      "wound_care":   { "type": "string", "description": "Wound or incision care instructions if applicable", "example": null },
+      "monitoring":   { "type": "string", "description": "What to watch for at home", "example": "Call if fever >100.5°F" },
+      "equipment":    { "type": "string", "description": "Durable medical equipment provided or ordered", "example": null },
+      "other":        { "type": "string", "description": "Any other specific discharge instructions", "example": "Take Leucovorin doses as scheduled: 11PM on 3/29 and 11AM on 3/30" }
+    }
+  },
+
+  "follow_up": {
+    "display_name": "FOLLOW-UP CARE",
+    "description": "Post-discharge appointments and care coordination.",
+    "fields": {
+      "appointments": {
+        "type": "array",
+        "description": "Scheduled follow-up appointments.",
+        "example": [
+          { "date": "2024-04-03", "time": "8:40 AM", "provider": "Infusion Treatment Center", "department": "Oncology Infusion", "phone": "650-498-6000", "address": "440 Broadway St, Redwood City CA 94063" }
+        ]
+      },
+      "recommendations": { "type": "string", "description": "General follow-up recommendations not tied to a specific appointment", "example": "Continue scheduled chemotherapy cycles. Follow up with ID outpatient." }
+    }
+  },
+
+  "patient_education": {
+    "display_name": "PATIENT EDUCATION",
+    "description": "Education provided and warning signs reviewed with patient/family.",
+    "fields": {
+      "warning_signs":      { "type": "array",  "description": "Specific symptoms requiring urgent care", "example": ["Fever >100.5°F", "Severe nausea/vomiting", "Signs of infection"] },
+      "education_provided": { "type": "array",  "description": "Topics reviewed with patient/family", "example": ["Chemotherapy side effects", "Nausea management", "Infection prevention", "Medication schedule"] },
+      "understanding":      { "type": "string", "description": "Documentation of patient/family understanding if noted", "example": "Patient verbalized understanding of discharge instructions." }
+    }
+  },
+
+  "discharge_disposition": {
+    "display_name": "DISCHARGE DISPOSITION",
+    "description": "Where the patient went and what support was arranged.",
+    "fields": {
+      "disposition":       { "type": "string", "description": "Discharge destination", "example": "Home" },
+      "support_services":  { "type": "string", "description": "Home health, VNA, PT/OT, case management arranged", "example": null },
+      "transportation":    { "type": "string", "description": "How patient left if documented", "example": null }
+    }
+  },
+
+  "additional_information": {
+    "display_name": "ADDITIONAL INFORMATION",
+    "description": "Catch-all for anything not captured above.",
+    "fields": {
+      "code_status":        { "type": "string", "description": "Code status if documented", "example": "Full code" },
+      "advance_directives": { "type": "string", "description": "Healthcare proxy, living will, POLST if documented", "example": null },
+      "barriers_to_care":   { "type": "string", "description": "Social determinants of health or barriers identified", "example": null },
+      "clinical_details":   {
+        "type": "object",
+        "description": "Flexible key-value pairs for any specialty-specific or uncategorized clinical information not captured in other sections. Add whatever labeled keys are relevant to this note — do not omit information just because it lacks a dedicated field.",
+        "example": { "ECOG_performance_status": "1", "chemotherapy_regimen": "EMA/CO", "cycle_number": "1 of 4", "beta_hCG_nadir": "1 on 2024-03-05", "BMI": "20.3" }
+      }
+    }
+  }
+}

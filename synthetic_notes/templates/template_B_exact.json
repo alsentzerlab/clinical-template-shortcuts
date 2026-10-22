@@ -1,0 +1,133 @@
+{
+  "_metadata": {
+    "name": "PAMF Hospitalist Discharge Summary (Template B, exact)",
+    "version": "3.1-exact",
+    "style": "Exact reproduction of the PAMF Hospitalist 'Discharge Summary' Epic shell. Each free-text '***' blank is a single composed text field (restructure.py stitches the underlying standardized fields into it); labeled slots (Patient, Medications, Vitals) stay structured. A catch-all at the end holds anything with no native slot.",
+    "based_on": "PAMF Hospitalist 'Discharge Summary' Epic template (Template contents (1).pdf)",
+    "content_parity_note": "Native (composed + structured) fields consume a set of standardized paths; the catch-all holds the rest. Consumed ∪ catch-all = the full standardized field set, identical to template_A_exact.",
+    "field_types": "A field may be: mapped (one standardized path), 'static' (fixed boilerplate), 'composed' (free-text stitched from several standardized paths), or a 'catch_all' section (all remaining fields).",
+    "null_convention": "Use JSON null for any field absent from the source note."
+  },
+
+  "patient": {
+    "display_name": "Patient",
+    "description": "Patient and encounter identification (labeled fields in the shell).",
+    "fields": {
+      "patients_name":          { "type": "string", "description": "Patient full name", "example": "Patient Name" },
+      "mrn":                    { "type": "string", "description": "Medical record number", "example": "000000" },
+      "attending_at_discharge": { "type": "string", "description": "Attending physician at time of discharge", "example": "John Doe, MD" },
+      "date_of_admission":      { "type": "string", "description": "Date of admission", "example": "2024-05-01" },
+      "date_of_discharge":      { "type": "string", "description": "Date of discharge", "example": "2024-05-05" }
+    }
+  },
+
+  "reason_for_admission": {
+    "display_name": "Reason for Admission",
+    "description": "Free-text '***' blank: chief complaint.",
+    "fields": {
+      "reason": { "type": "composed", "compose": ["admission_information.chief_complaint"], "description": "Composed reason for admission.", "example": "Shortness of breath." }
+    }
+  },
+
+  "discharge_diagnoses": {
+    "display_name": "Discharge Diagnoses",
+    "description": "Free-text blank: principal and secondary diagnoses.",
+    "fields": {
+      "diagnoses": { "type": "composed", "compose": ["discharge_diagnosis.primary_diagnosis", "discharge_diagnosis.secondary_diagnoses"], "description": "Composed discharge diagnoses.", "example": "Community-acquired pneumonia; acute hypoxic respiratory failure; COPD exacerbation." }
+    }
+  },
+
+  "summary_of_hospital_course": {
+    "display_name": "Summary of Hospital Course",
+    "description": "Free-text '***' blank: one-liner plus brief problem-based course and response.",
+    "fields": {
+      "summary": { "type": "composed", "compose": ["hospital_course.summary", "hospital_course.key_events", "hospital_course.response_to_treatment", "hospital_course.complications"], "description": "Composed hospital-course narrative.", "example": "64yo M with HTN/COPD admitted for pneumonia. Pneumonia: IV then oral antibiotics; hypoxia weaned off O2. Improved, hypoxia resolved." }
+    }
+  },
+
+  "mandatory_hf_ami_documentation": {
+    "display_name": "Mandatory Documentation for Heart Failure or Acute Myocardial Infarction",
+    "description": "PAMF static HF/AMI quality-documentation block.",
+    "fields": {
+      "quality_measures": { "type": "static", "static": "AMI/HF quality measures documented per the AMI or HF Quality smartset when applicable.", "description": "PAMF static HF/AMI mandatory documentation attestation." }
+    }
+  },
+
+  "disposition": {
+    "display_name": "Dispo",
+    "description": "Free-text blank: discharge destination and support (home vs SNF).",
+    "fields": {
+      "dispo": { "type": "composed", "compose": ["discharge_disposition.disposition", "discharge_disposition.support_services", "discharge_disposition.transportation"], "description": "Composed disposition text.", "example": "Home." }
+    }
+  },
+
+  "follow_up_plan": {
+    "display_name": "Follow-up Plan/Appointments",
+    "description": "Free-text blank: appointments and recommendations.",
+    "fields": {
+      "follow_up": { "type": "composed", "compose": ["follow_up.appointments", "follow_up.recommendations"], "description": "Composed follow-up plan.", "example": "PCP 2024-05-12 10:00 AM. Follow up with PCP in 1 week." }
+    }
+  },
+
+  "significant_findings_studies_procedures": {
+    "display_name": "Significant Findings, Studies, Procedures",
+    "description": "Free-text '***' blank plus @RADRESULTS@/@PENDINGLABS@: labs, imaging, studies, procedures, consults, pending labs.",
+    "fields": {
+      "findings": { "type": "composed", "compose": ["diagnostic_results.laboratory", "diagnostic_results.imaging", "diagnostic_results.pathology", "diagnostic_results.other", "procedures_and_interventions.procedures", "consultations.consultants", "pending_results.pending"], "description": "Composed significant findings/studies/procedures.", "example": "WBC 8.1, Na 139, Cr 0.9. CXR: RLL consolidation. EKG: NSR. Thoracentesis 5/2 — exudative effusion. Pulmonology consulted. Pending: blood culture." }
+    }
+  },
+
+  "medications_on_discharge": {
+    "display_name": "Medications on Discharge",
+    "description": "Discharge medication smartlist (structured).",
+    "fields": {
+      "medications": { "type": "array", "description": "Each entry has name, dose, route, frequency, indication.", "example": [{ "name": "Amoxicillin-clavulanate", "dose": "875 mg", "route": "oral", "frequency": "BID x5d" }] },
+      "started":   { "type": "array", "description": "Newly started medications", "example": ["Amoxicillin-clavulanate 875mg PO BID"] },
+      "stopped":   { "type": "array", "description": "Discontinued medications", "example": [] },
+      "changed":   { "type": "array", "description": "Dose/frequency changes", "example": [] },
+      "continued": { "type": "array", "description": "Home medications continued", "example": ["Lisinopril 10mg daily"] }
+    }
+  },
+
+  "additional_discharge_instructions": {
+    "display_name": "Additional Discharge Instructions",
+    "description": "Free-text '@DISCHARGEPROC@' slot: activity, diet, wound care, monitoring, equipment, other.",
+    "fields": {
+      "instructions": { "type": "composed", "compose": ["discharge_instructions.activity", "discharge_instructions.diet", "discharge_instructions.wound_care", "discharge_instructions.monitoring", "discharge_instructions.equipment", "discharge_instructions.other"], "description": "Composed discharge instructions.", "example": "Activity as tolerated. Regular diet. Return if fever or worsening dyspnea." }
+    }
+  },
+
+  "condition_and_exam_at_discharge": {
+    "display_name": "Vitals / Exam on Discharge",
+    "description": "Below-the-line documentation (not copied into PAMF Epic): vitals (@VS@) and exam '***'.",
+    "fields": {
+      "do_not_copy_separator": { "type": "static", "static": "——————— do not copy info below this line into PAMF Epic ———————", "description": "PAMF static below-the-line separator." },
+      "vital_signs":           { "type": "string", "description": "Discharge vitals (@VS@)", "example": "BP 124/78, HR 72, RR 16, afebrile, SpO2 96% RA" },
+      "exam":                  { "type": "composed", "compose": ["discharge_condition.overall_condition", "discharge_condition.functional_status", "discharge_condition.mental_status", "discharge_condition.pain_level"], "description": "Composed exam on day of discharge.", "example": "Stable. Ambulating independently. Alert and oriented x3. Pain well controlled." }
+    }
+  },
+
+  "cures_attestation": {
+    "display_name": "CURES Attestation",
+    "description": "PAMF static controlled-substance database attestation.",
+    "fields": {
+      "attestation": { "type": "static", "static": "The CURES database was reviewed before prescribing any opiates for this patient.", "description": "PAMF static CURES attestation." }
+    }
+  },
+
+  "attending_sign_off": {
+    "display_name": "Attending Sign-off",
+    "description": "PAMF static sign-off and medical-decision-making statement.",
+    "fields": {
+      "signature":               { "type": "static", "static": "PAMF Hospitalist", "description": "PAMF static hospitalist sign-off line." },
+      "medical_decision_making": { "type": "static", "static": "Medical decision making: >50% of the encounter spent counseling patient and family on lab/imaging results, medication changes/monitoring, and discharge plans. Coordinated with RN and case management regarding discharge plans; PAMF Epic updated and PCP notified.", "description": "PAMF static MDM statement." }
+    }
+  },
+
+  "additional_clinical_information": {
+    "display_name": "Additional Clinical Information",
+    "description": "Catch-all: note-derived facts with no native PAMF slot (age/sex/DOB/LOS, HPI, admitting dx, PMH, patient education, code status). Filled by restructure.py so content matches template_A_exact.",
+    "catch_all": true,
+    "fields": {}
+  }
+}
