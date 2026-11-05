@@ -6,38 +6,22 @@ It assumes notes are already in either template A or template B (not both).
 """
 
 import pandas as pd
-from google.cloud import storage
-import io
 import os
 import argparse
 from sklearn.model_selection import train_test_split
 import numpy as np
 import random
 
-# Load data from Google Cloud Storage or local file
-def load_data_from_gcs(bucket_name, blob_name):
-    """Load data from Google Cloud Storage or local file path."""
-    # Check if blob_name is actually a local file path
-    if os.path.exists(os.path.abspath(blob_name)):
-        print(f"Loading from local file: {blob_name}")
-        df = pd.read_parquet(blob_name)
-        print(f"Successfully loaded parquet file. Loaded {len(df)} rows.")
-        return df
-
-    if bucket_name is None:
-        raise FileNotFoundError(f"Local file not found: {blob_name}")
-
-    # Otherwise, try to load from GCS
-    print(f"Loading from GCS: gs://{bucket_name}/{blob_name}")
-    storage_client = storage.Client()
-    bucket = storage_client.bucket(bucket_name)
-    blob = bucket.blob(blob_name)
-    data = blob.download_as_string()
-    if str(blob_name).lower().endswith('csv'):
-        df = pd.read_csv(io.BytesIO(data))
+def load_data(path):
+    """Load a local Parquet (default) or CSV file."""
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"Local file not found: {path}")
+    print(f"Loading from local file: {path}")
+    if str(path).lower().endswith('.csv'):
+        df = pd.read_csv(path)
     else:
-        df = pd.read_parquet(io.BytesIO(data))
-    print(f"Successfully loaded parquet file. Loaded {len(df)} rows.")
+        df = pd.read_parquet(path)
+    print(f"Loaded {len(df)} rows.")
     return df
 
 
@@ -274,7 +258,7 @@ def _assign_paired_eval(df_paired, label_column, random_seed):
     return pd.concat(rows, ignore_index=True).sample(frac=1, random_state=random_seed).reset_index(drop=True)
 
 
-def attach_group_column(df, group_column, group_map_path, group_map_key, bucket_name=None):
+def attach_group_column(df, group_column, group_map_path, group_map_key):
     """
     Join a grouping column (e.g. pat_id) onto df from a separate mapping file.
 
@@ -294,12 +278,12 @@ def attach_group_column(df, group_column, group_map_path, group_map_key, bucket_
     lower = group_map_path.lower()
     if lower.endswith(('.pkl', '.pickle')):
         gmap = pd.read_pickle(group_map_path)
-    elif lower.endswith('.parquet') and os.path.exists(group_map_path):
+    elif lower.endswith('.parquet'):
         # Read only the join key and group column. These mapping files also carry
         # note text; there is no reason to pull it into memory to build an ID map.
         gmap = pd.read_parquet(group_map_path, columns=[group_map_key, group_column])
     else:
-        gmap = load_data_from_gcs(bucket_name, group_map_path)
+        gmap = load_data(group_map_path)
 
     for col in (group_map_key, group_column):
         if col not in gmap.columns:
@@ -437,7 +421,6 @@ def process_dataset(
     input_path=None,
     template_a_path=None,
     template_b_path=None,
-    bucket_name=None,
     text_column='full_note',
     label_column='readmit_binary',
     template_column='template',
@@ -464,10 +447,9 @@ def process_dataset(
     2. Bias creation mode: Create biased dataset from two templates (provide template_a_path and template_b_path)
     
     Args:
-        input_path: Path to input Parquet file (local or GCS) - for simple mode
+        input_path: Path to input Parquet file - for simple mode
         template_a_path: Path to template A Parquet file - for bias creation mode
         template_b_path: Path to template B Parquet file - for bias creation mode
-        bucket_name: GCS bucket name (if None, assumes local file)
         text_column: Name of column containing text
         label_column: Name of column containing labels
         template_column: Name of column containing template identifier (A or B)
@@ -501,12 +483,8 @@ def process_dataset(
         print(f"p_train={p_train} (train); {eval_desc}")
         print(f"{'='*60}")
 
-        if bucket_name:
-            df_a = load_data_from_gcs(bucket_name, template_a_path)
-            df_b = load_data_from_gcs(bucket_name, template_b_path)
-        else:
-            df_a = load_data_from_gcs(None, template_a_path)
-            df_b = load_data_from_gcs(None, template_b_path)
+        df_a = load_data(template_a_path)
+        df_b = load_data(template_b_path)
 
         if 'note_id' not in df_a.columns or 'note_id' not in df_b.columns:
             raise ValueError("Paired mode requires a 'note_id' column in both template files. "
@@ -523,7 +501,7 @@ def process_dataset(
         # Split note_ids into train / val / test (no note appears in multiple splits).
         # With group_column set, no patient appears in multiple splits either.
         if group_column:
-            paired = attach_group_column(paired, group_column, group_map_path, group_map_key, bucket_name)
+            paired = attach_group_column(paired, group_column, group_map_path, group_map_key)
         # Paired mode assigns template after splitting, so no template column exists yet;
         # stratify on label only.
         train_paired, val_paired, test_paired = split_three_way(
@@ -572,10 +550,7 @@ def process_dataset(
             raise ValueError("Either input_path (for simple mode) or template_a_path/template_b_path with p_train (for bias mode) must be provided")
         
         # Load data
-        if bucket_name:
-            df = load_data_from_gcs(bucket_name, input_path)
-        else:
-            df = load_data_from_gcs(None, input_path)
+        df = load_data(input_path)
     
     print(f"\n{'='*60}")
     print(f"Dataset Statistics")
@@ -617,7 +592,7 @@ def process_dataset(
     # Split into train, validation, and test sets.
     # group_column (e.g. 'pat_id') keeps every row from one patient in a single split.
     if group_column:
-        df = attach_group_column(df, group_column, group_map_path, group_map_key, bucket_name)
+        df = attach_group_column(df, group_column, group_map_path, group_map_key)
     train_df, val_df, test_df = split_three_way(
         df, label_column, val_ratio, test_ratio, random_seed, group_column,
         stratify_groups=stratify_groups, match_rates=match_rates,
@@ -687,7 +662,7 @@ if __name__ == "__main__":
         '--input-path',
         type=str,
         default=None,
-        help='Path to input Parquet file (local file path or GCS blob name) - for simple mode'
+        help='Path to input Parquet file - for simple mode'
     )
 
     # Input arguments - Bias creation mode
@@ -732,13 +707,6 @@ if __name__ == "__main__":
         default=None,
         help='Maximum number of samples per template (for bias creation mode). '
              'If specified, both templates will have exactly this many samples.'
-    )
-    
-    parser.add_argument(
-        '--bucket-name',
-        type=str,
-        default=None,
-        help='GCS bucket name (if None, assumes local file)'
     )
     
     # Column arguments
@@ -845,7 +813,6 @@ if __name__ == "__main__":
         input_path=args.input_path,
         template_a_path=args.template_a_path,
         template_b_path=args.template_b_path,
-        bucket_name=args.bucket_name,
         text_column=args.text_column,
         label_column=args.label_column,
         template_column=args.template_column,
