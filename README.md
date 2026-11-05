@@ -1,6 +1,6 @@
 # EHR templates as shortcuts in clinical-note models
 
-Code for the paper *Clinical language models exploit documentation artifacts as hidden shortcuts*. We show that LLMs fine-tuned to predict 30-day
+Code for the paper **Clinical language models exploit documentation artifacts as hidden shortcuts**. We show that LLMs fine-tuned to predict 30-day
 readmission from discharge summaries use the EHR template a note was written in
 as a shortcut, and that aggregate evaluation hides it.
 
