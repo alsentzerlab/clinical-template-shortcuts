@@ -1,7 +1,7 @@
 [project]
 name = "shortcut-learning"
 version = "0.1.0"
-description = "EHR templates as shortcuts in clinical-note readmission models"
+description = "Clinical language models exploit documentation artifacts as hidden shortcuts"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
