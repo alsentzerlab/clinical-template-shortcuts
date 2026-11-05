@@ -13,8 +13,6 @@ from peft import PeftModel, PeftConfig
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import roc_auc_score, classification_report, confusion_matrix
 import pandas as pd
-from google.cloud import storage
-import io
 import os
 import argparse
 import numpy as np
@@ -103,52 +101,27 @@ class LinearProbeClassifier(nn.Module):
         return logits
 
 
-def load_data_from_gcs(bucket_name, blob_name):
-    """Load data from Google Cloud Storage."""
-    storage_client = storage.Client()
-    bucket = storage_client.bucket(bucket_name)
-    blob = bucket.blob(blob_name)
-    
-    data = blob.download_as_string()
-    df = pd.read_csv(io.BytesIO(data))
-    
-    return df
-
-
-def combine_template_csvs(template_a_path, template_b_path, text_column='full_note', bucket_name=None, max_samples_per_template=None, random_seed=42):
+def combine_template_csvs(template_a_path, template_b_path, text_column='full_note', max_samples_per_template=None, random_seed=42):
     """
     Combine two template CSV files (template A and template B) into a single dataframe
     suitable for linear probe evaluation.
     
     Args:
-        template_a_path: Path to template A CSV (local file or GCS blob name)
-        template_b_path: Path to template B CSV (local file or GCS blob name)
+        template_a_path: Path to template A CSV
+        template_b_path: Path to template B CSV
         text_column: Name of the column containing the text (default: 'full_note')
-        bucket_name: GCS bucket name (if paths are GCS blobs, otherwise None for local files)
         max_samples_per_template: Maximum number of samples to use from each template (None = use all)
         random_seed: Random seed for sampling (default: 42)
     
     Returns:
         Combined DataFrame with 'template' column ('A' or 'B') and text column
     """
-    # Load template A - check local first, then GCS if bucket_name provided
-    if os.path.exists(template_a_path):
-        df_a = pd.read_csv(template_a_path)
-    elif bucket_name:
-        # Try GCS if file doesn't exist locally and bucket_name is provided
-        df_a = load_data_from_gcs(bucket_name, template_a_path)
-    else:
-        raise FileNotFoundError(f"Template A file not found locally at {template_a_path} and no bucket_name provided for GCS")
-    
-    # Load template B - check local first, then GCS if bucket_name provided
-    if os.path.exists(template_b_path):
-        df_b = pd.read_csv(template_b_path)
-    elif bucket_name:
-        # Try GCS if file doesn't exist locally and bucket_name is provided
-        df_b = load_data_from_gcs(bucket_name, template_b_path)
-    else:
-        raise FileNotFoundError(f"Template B file not found locally at {template_b_path} and no bucket_name provided for GCS")
-    
+    for name, path in (('A', template_a_path), ('B', template_b_path)):
+        if not os.path.exists(path):
+            raise FileNotFoundError(f"Template {name} file not found: {path}")
+    df_a = pd.read_csv(template_a_path)
+    df_b = pd.read_csv(template_b_path)
+
     # Sample if max_samples_per_template is specified
     if max_samples_per_template is not None:
         original_len_a = len(df_a)
@@ -194,14 +167,9 @@ def combine_template_csvs(template_a_path, template_b_path, text_column='full_no
     return combined_df
 
 
-def load_data_from_gcs_flatten(bucket_name, blob_name, use_raw_text=False):
-    """Load data from Google Cloud Storage and flatten template structure."""
-    storage_client = storage.Client()
-    bucket = storage_client.bucket(bucket_name)
-    blob = bucket.blob(blob_name)
-    
-    data = blob.download_as_string()
-    original_df = pd.read_csv(io.BytesIO(data))
+def load_data_flatten(path, use_raw_text=False):
+    """Load a local CSV and flatten template structure (one row per template)."""
+    original_df = pd.read_csv(path)
     
     # Create two rows for each original row (one for each template)
     template_rows = []
@@ -388,16 +356,11 @@ def main():
     parser = argparse.ArgumentParser(description='Run linear probe on saved models')
     parser.add_argument('--model-path', type=str, required=True,
                         help='Path to saved model (e.g., Synthetic_Real_World_Experiment/Synethtic_Real_World_Models/p_0_final_model)')
-    parser.add_argument('--data-source', type=str, choices=['gcs', 'gcs_flatten', 'local', 'combine_templates', 'presplit'],
-                        default='gcs_flatten',
-                        help='Data source: gcs (load from GCS), gcs_flatten (load from GCS and create template rows), local (load from local file), combine_templates (combine two template CSV files), or presplit (use pre-split train/val/test parquet files from process_data.py)')
-    parser.add_argument('--bucket-name', type=str, default=None,
-                        help='GCS bucket name (only used if data-source is gcs, gcs_flatten, or if local files not found for combine_templates)')
-    parser.add_argument('--blob-name', type=str,
-                        default=None,
-                        help='For GCS: path to file in bucket (e.g., "Reformatted_Notes/file.csv"). For local: path to CSV file. Required columns for gcs_flatten: formatted_text_templateA, formatted_text_templateB, note_id, text, label')
-    parser.add_argument('--local-data-path', type=str,
-                        help='Local CSV file path (alternative to --blob-name when data-source is local)')
+    parser.add_argument('--data-source', type=str, choices=['flatten', 'local', 'combine_templates', 'presplit'],
+                        default='flatten',
+                        help='Data source: flatten (load CSV and create one row per template), local (load CSV as-is), combine_templates (combine two template CSV files), or presplit (use pre-split train/val/test parquet files from process_data.py)')
+    parser.add_argument('--data-path', '--local-data-path', dest='data_path', type=str, default=None,
+                        help='Local CSV file path (for flatten and local data sources). Required columns for flatten: formatted_text_templateA, formatted_text_templateB, note_id, text, label')
     parser.add_argument('--train-data', type=str,
                         help='Path to train.parquet file (for presplit data-source)')
     parser.add_argument('--val-data', type=str,
@@ -477,63 +440,26 @@ def main():
 
     else:
         # Original data loading logic for other sources
+        if args.data_source in ('local', 'flatten') and not args.data_path:
+            raise ValueError(f"--data-path is required when using {args.data_source} data source")
+
         if args.data_source == 'local':
-            if args.local_data_path:
-                df = pd.read_csv(args.local_data_path)
-            else:
-                df = pd.read_csv(args.blob_name)
-        elif args.data_source == 'gcs_flatten':
-            df = load_data_from_gcs_flatten(args.bucket_name, args.blob_name)
-        elif args.data_source == 'combine_templates':
+            df = pd.read_csv(args.data_path)
+        elif args.data_source == 'flatten':
+            df = load_data_flatten(args.data_path)
+        else:  # combine_templates
             if not args.template_a_path or not args.template_b_path:
                 raise ValueError("--template-a-path and --template-b-path are required when using combine_templates data source")
-
-            # Check if files exist locally first
-            template_a_exists = os.path.exists(args.template_a_path)
-            template_b_exists = os.path.exists(args.template_b_path)
-
-            if not template_a_exists and not template_b_exists:
-                # Neither file exists locally - check if we should try GCS
-                if args.bucket_name:
-                    print(f"Warning: Template files not found locally. Trying GCS...")
-                    print(f"  Template A: {args.template_a_path}")
-                    print(f"  Template B: {args.template_b_path}")
-                    use_gcs = True
-                else:
-                    raise FileNotFoundError(
-                        f"Template files not found locally and no bucket_name provided.\n"
-                        f"  Template A: {args.template_a_path}\n"
-                        f"  Template B: {args.template_b_path}\n"
-                        f"Please provide local file paths or set --bucket-name for GCS."
-                    )
-            elif not template_a_exists or not template_b_exists:
-                # One file exists but not the other
-                missing = []
-                if not template_a_exists:
-                    missing.append(f"Template A: {args.template_a_path}")
-                if not template_b_exists:
-                    missing.append(f"Template B: {args.template_b_path}")
-                raise FileNotFoundError(
-                    f"Some template files not found locally:\n  " + "\n  ".join(missing) +
-                    f"\nPlease ensure all template files exist locally or provide correct paths."
-                )
-            else:
-                # Both files exist locally - use local files
-                print(f"Using local template files:")
-                print(f"  Template A: {args.template_a_path}")
-                print(f"  Template B: {args.template_b_path}")
-                use_gcs = False
-
+            print(f"Using local template files:")
+            print(f"  Template A: {args.template_a_path}")
+            print(f"  Template B: {args.template_b_path}")
             df = combine_template_csvs(
                 args.template_a_path,
                 args.template_b_path,
                 text_column=args.text_column,
-                bucket_name=args.bucket_name if use_gcs else None,
                 max_samples_per_template=args.max_samples_per_template,
                 random_seed=args.random_seed
             )
-        else:  # gcs
-            df = load_data_from_gcs(args.bucket_name, args.blob_name)
 
         df = df.dropna()
 
