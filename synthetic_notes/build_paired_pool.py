@@ -24,7 +24,7 @@ Usage:
   python synthetic_notes/build_paired_pool.py \\
     --arm-a-csv synthetic_notes/pool_exact_armA_input.csv \\
     --arm-b-csv synthetic_notes/pool_exact_armB_input.csv \\
-    --label-parquet gs://<bucket>/synthetic_source_notes.parquet \\
+    --label-parquet data/raw/synthetic_source_notes.parquet \\
     --patid-parquet data/raw/filtered_notes.parquet \\
     --output-dir data/paired_pool
 """
