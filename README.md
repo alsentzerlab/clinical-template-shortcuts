@@ -53,12 +53,12 @@ Run everything from the repository root.
 ### 1. Templates, pairs and held-out set
 
 ```bash
-python template_selection/build_note_template_parquet.py --with-text   # notes + template ids
-python template_selection/template_pool.py --frame-out template_sampling_frame.csv \
+uv run python template_selection/build_note_template_parquet.py --with-text   # notes + template ids
+uv run python template_selection/template_pool.py --frame-out template_sampling_frame.csv \
     --dump-shells template_pool_txt                                    # eligible pool (>= 100 notes)
-python template_selection/classify_template_pool.py                    # specialty label per template
-python template_selection/build_pair_parquets.py                       # data/pairs/<A>_<B>.parquet
-python template_selection/build_heldout_parquet.py --with-pat-id      # data/heldout/heldout_notes.parquet
+uv run python template_selection/classify_template_pool.py                    # specialty label per template
+uv run python template_selection/build_pair_parquets.py                       # data/pairs/<A>_<B>.parquet
+uv run python template_selection/build_heldout_parquet.py --with-pat-id      # data/heldout/heldout_notes.parquet
 ```
 
 The ten held-out templates are fixed in `template_selection/heldout_templates.py`.
@@ -71,7 +71,7 @@ its docstring.
 
 ```bash
 bash finetuning/split_pairs.sh          # 70/15/15 by patient, per-template rates matched
-python finetuning/split_report.py data/pairs/*/
+uv run python finetuning/split_report.py data/pairs/*/
 ```
 
 Splits use seed 42; per-template readmission rates differ by at most 0.1 pp across
@@ -81,7 +81,7 @@ prints what any patient-grouped split could achieve on a dataset.
 ### 3. Fine-tuning and evaluation
 
 ```bash
-python -m finetuning.train \
+uv run python -m finetuning.train \
     --train-data data/pairs/206596_229657/train.parquet \
     --val-data   data/pairs/206596_229657/val.parquet \
     --test-data  data/pairs/206596_229657/test.parquet \
@@ -111,46 +111,46 @@ on each pair file, then split with `SUFFIX=_removed bash finetuning/split_pairs.
 ### 4. Synthetic template sweep
 
 ```bash
-python synthetic_notes/run_pool_reformat.py --gcs_parquet <notes> --exclude_phrase <phrase> \
+uv run python synthetic_notes/run_pool_reformat.py --gcs_parquet <notes> --exclude_phrase <phrase> \
     --n 3000 --output pool_reformat.csv --model gpt-5-5 --repair      # step 1: extraction
-python synthetic_notes/run_validation.py --reformat_csv pool_reformat.csv ...   # VeriFact-style check
-python synthetic_notes/make_exact_arms.py --input pool_reformat.csv --out_prefix pool_exact
-python synthetic_notes/build_paired_pool.py --arm-a-csv pool_exact_armA_input.csv \
+uv run python synthetic_notes/run_validation.py --reformat_csv pool_reformat.csv ...   # VeriFact-style check
+uv run python synthetic_notes/make_exact_arms.py --input pool_reformat.csv --out_prefix pool_exact
+uv run python synthetic_notes/build_paired_pool.py --arm-a-csv pool_exact_armA_input.csv \
     --arm-b-csv pool_exact_armB_input.csv ...                        # step 2: render S1 / S2
 
-python -m finetuning.sweep_p_train \
+uv run python -m finetuning.sweep_p_train \
     --template-a-path data/paired_pool/template_a.parquet \
     --template-b-path data/paired_pool/template_b.parquet \
     --p-trains 0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0 \
     --group-column pat_id --match-rates --match-eval-bias \
     --results-dir results/synthetic_sweep
-python finetuning/auc_decomposition.py results/synthetic_sweep
+uv run python finetuning/auc_decomposition.py results/synthetic_sweep
 ```
 
-`python synthetic_notes/restructure.py --selftest` checks, without any patient
+`uv run python synthetic_notes/restructure.py --selftest` checks, without any patient
 data, that the two rendered templates carry identical content.
 
 ### 5. Gradient scaling
 
 ```bash
 sbatch gradient_scaling/run_gradient_scaling.sbatch        # or run_gradient_scaling_local.sh
-python -m gradient_scaling.analyze --runs-root ~/gradient_scaling_runs
+uv run python -m gradient_scaling.analyze --runs-root ~/gradient_scaling_runs
 ```
 
 ### 6. Linear probe
 
 ```bash
-python -m probing.linear_probe --model-path models/206596_229657 --data-source presplit ...
+uv run python -m probing.linear_probe --model-path models/206596_229657 --data-source presplit ...
 ```
 
 ### 7. Figures
 
 ```bash
 cd figures
-python figure2_pipeline_schematic.py && python figure2_synthetic.py
-python figure3_main.py
-python figure4_scale_pretraining.py
-python figure5_mitigation.py
+uv run python figure2_pipeline_schematic.py && uv run python figure2_synthetic.py
+uv run python figure3_main.py
+uv run python figure4_scale_pretraining.py
+uv run python figure5_mitigation.py
 ```
 
 The figures as they appear in the paper are in `figures/figure_1/` ... `figures/figure_5/`
