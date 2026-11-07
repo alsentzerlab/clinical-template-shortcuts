@@ -83,7 +83,7 @@ def load_dataset(parquet_path, balanced_size=None):
     return df
 
 
-def balance_template_readmission_rates(df, label_column='label'):
+def balance_template_readmission_rates(df, label_column='label', seed=42):
     """Equalize readmission rates between template A and B by downsampling.
 
     Keeps template A unchanged. Adjusts template B to match template A's
@@ -108,21 +108,21 @@ def balance_template_readmission_rates(df, label_column='label'):
         n_b_neg = len(b_neg)
         n_b_pos_new = int(round(r_a * n_b_neg / (1 - r_a)))
         n_b_pos_new = min(n_b_pos_new, len(b_pos))
-        b_pos_sampled = b_pos.sample(n=n_b_pos_new, random_state=42)
+        b_pos_sampled = b_pos.sample(n=n_b_pos_new, random_state=seed)
         df_b_new = pd.concat([b_pos_sampled, b_neg], ignore_index=True)
     elif r_b < r_a:
         # Downsample B negatives: n_neg_new = n_pos * (1 - r_a) / r_a
         n_b_pos = len(b_pos)
         n_b_neg_new = int(round(n_b_pos * (1 - r_a) / r_a))
         n_b_neg_new = min(n_b_neg_new, len(b_neg))
-        b_neg_sampled = b_neg.sample(n=n_b_neg_new, random_state=42)
+        b_neg_sampled = b_neg.sample(n=n_b_neg_new, random_state=seed)
         df_b_new = pd.concat([b_pos, b_neg_sampled], ignore_index=True)
     else:
         df_b_new = df_b
 
-    df_b_new = df_b_new.sample(frac=1, random_state=42).reset_index(drop=True)
+    df_b_new = df_b_new.sample(frac=1, random_state=seed).reset_index(drop=True)
     result = pd.concat([df_a, df_b_new], ignore_index=True)
-    result = result.sample(frac=1, random_state=42).reset_index(drop=True)
+    result = result.sample(frac=1, random_state=seed).reset_index(drop=True)
 
     r_b_new = df_b_new[label_column].mean()
     print(f"After balancing readmission rates: Template A={r_a:.4f}, Template B={r_b_new:.4f}")
@@ -243,7 +243,7 @@ def train_model(
     # Balance readmission rates between templates in training set if requested
     if balance_readmission_rates:
         print("\nBalancing template readmission rates in training set...")
-        train_df = balance_template_readmission_rates(train_df, label_column=label_column)
+        train_df = balance_template_readmission_rates(train_df, label_column=label_column, seed=seed)
     
     # Extract texts and labels
     train_texts = train_df[text_column].tolist()
