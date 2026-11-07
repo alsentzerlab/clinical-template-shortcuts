@@ -89,9 +89,21 @@ python -m finetuning.train \
 ```
 
 Defaults are the paper's settings (Qwen3-0.6B, LoRA r=16, alpha=32, LR 2e-4,
-4 epochs, effective batch size 4). Use `--model-name` and `--learning-rate` for the
-scale and pretraining comparisons (learning rates: 2e-4 for Qwen3-0.6B and 1.7B,
-5e-4 for Qwen3-4B, 1e-3 for Llama-2 13B and MeLlama 13B), and
+4 epochs, effective batch size 4). Every model in the paper uses LR 2e-4, so the
+scale and pretraining comparisons only change `--model-name`:
+
+| Model | `--model-name` | Extra flags |
+|---|---|---|
+| Qwen3-0.6B (default) | `Qwen/Qwen3-0.6B` | |
+| Qwen3-1.7B | `Qwen/Qwen3-1.7B` | `--max-seq 9000` |
+| Qwen3-4B | `Qwen/Qwen3-4B` | `--max-seq 9000` |
+| Llama-2 13B | `meta-llama/Llama-2-13b-hf` | `--max-seq 9000` |
+| MeLlama 13B | local path to `MeLLaMA-13B-chat` | `--max-seq 9000` |
+
+Every model except the default Qwen3-0.6B truncates notes to 9,000 tokens; the 0.6B
+model sees full notes.
+MeLlama is distributed through PhysioNet (credentialed access), not the Hugging Face
+Hub, so download it there and pass the local directory. Use
 `--balance-readmission-rates` for the balancing mitigation. The TRACE arm trains
 on `data/pairs/<pair>_removed.parquet`, produced by running TRACE (Cahoon et al.)
 on each pair file, then split with `SUFFIX=_removed bash finetuning/split_pairs.sh`.
@@ -160,7 +172,6 @@ The scripts draw from stored results rather than from model outputs:
 - TRACE, which is a separate tool (Cahoon et al.).
 - Evaluation of the trained models on the held-out templates (Fig. 3e-g,
   Table 2).
-- The learning-rate sweeps used to choose the rates above.
 
 ## License
 
